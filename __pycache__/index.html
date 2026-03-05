@@ -1,0 +1,35 @@
+<script>
+    async function checkEmail() {
+        const email = document.getElementById("email").value;
+        const resultDiv = document.getElementById("result");
+
+        const response = await fetch("http://127.0.0.1:5000/check-email", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ email: email })
+        });
+
+        const data = await response.json();
+
+
+        if (data.valid_email === false) {
+            resultDiv.innerHTML = `
+                <p style="color: red; font-weight: bold;">
+                    ❌ Invalid Email Address
+                </p>
+                <p><b>Risk Score:</b> ${data.risk_score}</p>
+            `;
+            return;
+        }
+
+
+        resultDiv.innerHTML = `
+            <p><b>Risk Score:</b> ${data.risk_score}</p>
+            <p><b>Local Disposable:</b> ${data.local_disposable}</p>
+            <p><b>API Disposable:</b> ${data.api_disposable}</p>
+            <p><b>Action:</b> ${data.action}</p>
+        `;
+    }
+</script>

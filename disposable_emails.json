@@ -1,0 +1,12 @@
+{
+    "last_updated": "2026-03-03T12:00:00Z",
+    "domain_sources": [
+        "https://cdn.jsdelivr.net/gh/disposable/disposable-email-domains@master/domains.json",
+        "https://github.com/disposable/disposable"
+    ],
+    "domain": [
+        "helo.com",
+        "mailinator.com"
+    ]
+}
+

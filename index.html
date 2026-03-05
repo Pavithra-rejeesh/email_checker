@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Risk Checker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 80px;
+            background-color: #f4f4f4;
+        }
+
+        input {
+            padding: 10px;
+            width: 300px;
+            font-size: 16px;
+            margin-right: 5px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .result {
+            margin-top: 25px;
+            font-size: 18px;
+            display: inline-block;
+            text-align: left;
+        }
+
+        .invalid {
+            background: #ffe6e6;
+            padding: 15px;
+            border-radius: 8px;
+            color: red;
+            font-weight: bold;
+        }
+
+        .allow {
+            color: green;
+            font-weight: bold;
+        }
+
+        .flag {
+            color: orange;
+            font-weight: bold;
+        }
+
+        .block {
+            color: red;
+            font-weight: bold;
+        }
+
+        .result p {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Advanced Disposable Email Detector</h2>
+
+    <input type="text" id="email" placeholder="Enter email">
+    <button onclick="checkEmail()">Check</button>
+
+    <div class="result" id="result"></div>
+
+<script>
+async function checkEmail() {
+    const email = document.getElementById("email").value.trim();
+    const resultDiv = document.getElementById("result");
+
+    if (!email) {
+        resultDiv.innerHTML = `<div class="invalid">❌ Please enter an email address.</div>`;
+        return;
+    }
+
+    try {
+        const response = await fetch("http://127.0.0.1:3001/check-email", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ email: email })
+        });
+
+        if (!response.ok) throw new Error("HTTP error " + response.status);
+
+        const data = await response.json();
+
+        let actionClass = data.action === "ALLOW" ? "allow" :
+                          data.action === "FLAG" ? "flag" : "block";
+
+        // ❌ Invalid email format
+        if (!data.valid_email) {
+            resultDiv.innerHTML = `
+                <div class="invalid">❌ Invalid Email Format</div>
+                <p><b>Email:</b> ${data.email || "-"}</p>
+                <p><b>Risk Score:</b> ${data.risk_score ?? "-"}</p>
+                <p><b>Recommended Action:</b> <span class="${actionClass}">${data.action || "-"}</span></p>
+            `;
+            return;
+        }
+
+        // ⚠ Disposable email
+        if (data.local_disposable || data.api_disposable) {
+            resultDiv.innerHTML = `
+                <div class="flag">⚠ Disposable Email Detected</div>
+                <p><b>Email:</b> ${data.email}</p>
+                <p><b>Domain:</b> ${data.domain}</p>
+                <p><b>Risk Score:</b> ${data.risk_score}</p>
+                <p><b>Recommended Action:</b> <span class="${actionClass}">${data.action}</span></p>
+            `;
+            return;
+        }
+
+        // ✅ Normal email
+        resultDiv.innerHTML = `
+            <p><b>Email:</b> ${data.email}</p>
+            <p><b>Domain:</b> ${data.domain}</p>
+            <p><b>Valid Email:</b> Yes</p>
+            <p><b>Risk Score:</b> ${data.risk_score}</p>
+            <p><b>Recommended Action:</b> <span class="${actionClass}">${data.action}</span></p>
+        `;
+
+    } catch (error) {
+        console.error("Fetch Error:", error);
+        resultDiv.innerHTML = `<div class="invalid">❌ Cannot connect to backend.</div>`;
+    }
+}
+</script>
