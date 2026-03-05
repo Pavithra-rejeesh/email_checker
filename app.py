@@ -14,17 +14,14 @@ def check_email():
     data = request.json
 
     if not data or "email" not in data:
-       return jsonify({"error": "Email is required"}), 400
+        return jsonify({"error": "Email is required"}), 400
 
     email = data.get("email").strip()
 
     result = assess_email(email)
 
     return jsonify(result)
- 
-    if __name__ == "__main__":
-      app.run(port=3001, debug=True)
 
-  
 
+if __name__ == "__main__":
     app.run(port=3001, debug=True)
