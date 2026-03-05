@@ -101,3 +101,4 @@ for email in test_emails:
 #         email = "testuser@example.com"
 #         result = check_chars_in_email_loop(username, email)
 #         print(f"Are all characters in '{username}' present in '{email}'? {result}")
+                      

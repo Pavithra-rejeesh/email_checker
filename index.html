@@ -1,131 +1,663 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Email Risk Checker</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EmailGuard — Risk Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin-top: 80px;
-            background-color: #f4f4f4;
+        :root {
+            --bg: #0a0a0f;
+            --surface: #111118;
+            --surface-2: #1a1a24;
+            --border: rgba(255,255,255,0.07);
+            --border-active: rgba(99,102,241,0.5);
+            --text: #e8e8f0;
+            --text-dim: #6b6b80;
+            --text-muted: #3a3a4a;
+            --accent: #6366f1;
+            --accent-glow: rgba(99,102,241,0.3);
+            --green: #22c55e;
+            --green-bg: rgba(34,197,94,0.08);
+            --orange: #f59e0b;
+            --orange-bg: rgba(245,158,11,0.08);
+            --red: #ef4444;
+            --red-bg: rgba(239,68,68,0.08);
+            --scan-line: rgba(99,102,241,0.4);
         }
 
-        input {
-            padding: 10px;
-            width: 300px;
-            font-size: 16px;
-            margin-right: 5px;
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Grid background */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Radial glow */
+        body::after {
+            content: '';
+            position: fixed;
+            top: -20%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 800px;
+            height: 500px;
+            background: radial-gradient(ellipse, rgba(99,102,241,0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 580px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 40px;
+            animation: fadeSlideDown 0.6s ease both;
+        }
+
+        .logo-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #818cf8);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .brand {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: #fff;
+        }
+
+        .brand span {
+            color: var(--accent);
+        }
+
+        .tagline {
+            font-size: 11px;
+            color: var(--text-dim);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            padding-left: 48px;
+        }
+
+        /* Card */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            animation: fadeSlideUp 0.6s ease 0.1s both;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .card-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dim);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            box-shadow: 0 0 8px var(--green);
+            animation: pulse 2s infinite;
+        }
+
+        .card-body {
+            padding: 28px 24px;
+        }
+
+        /* Input area */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 14px;
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 13px 14px 13px 40px;
+            font-family: 'DM Mono', monospace;
+            font-size: 13px;
+            color: var(--text);
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            letter-spacing: 0.3px;
+        }
+
+        input[type="text"]::placeholder {
+            color: var(--text-muted);
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        input[type="text"]:focus + .input-icon {
+            color: var(--accent);
+        }
+
+        .input-wrapper:focus-within .input-icon {
+            color: var(--accent);
         }
 
         button {
-            padding: 10px 20px;
-            font-size: 16px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 13px 22px;
+            font-family: 'Syne', sans-serif;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
             cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+            position: relative;
+            overflow: hidden;
         }
 
-        .result {
-            margin-top: 25px;
+        button::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            pointer-events: none;
+        }
+
+        button:hover {
+            background: #5254d4;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .hint {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 24px 0;
+        }
+
+        /* Result */
+        .result-area {
+            min-height: 0;
+        }
+
+        .result-area.has-result {
+            min-height: 10px;
+        }
+
+        /* Scanning animation */
+        .scanning {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            padding: 20px 0;
+        }
+
+        .scan-bar-wrapper {
+            width: 100%;
+            height: 3px;
+            background: var(--surface-2);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .scan-bar {
+            height: 100%;
+            width: 40%;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            border-radius: 2px;
+            animation: scan 1.2s ease-in-out infinite;
+        }
+
+        .scan-label {
+            font-size: 11px;
+            color: var(--accent);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation: blink 1s step-end infinite;
+        }
+
+        /* Result card */
+        .result-card {
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            animation: fadeSlideUp 0.4s ease both;
+        }
+
+        .result-banner {
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-banner .icon {
             font-size: 18px;
-            display: inline-block;
-            text-align: left;
         }
 
-        .invalid {
-            background: #ffe6e6;
-            padding: 15px;
-            border-radius: 8px;
-            color: red;
-            font-weight: bold;
+        .result-banner .label {
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            font-weight: 700;
         }
 
-        .allow {
-            color: green;
-            font-weight: bold;
+        .result-banner.allow {
+            background: var(--green-bg);
+            border-bottom: 1px solid rgba(34,197,94,0.15);
         }
 
-        .flag {
-            color: orange;
-            font-weight: bold;
+        .result-banner.allow .label { color: var(--green); }
+
+        .result-banner.flag {
+            background: var(--orange-bg);
+            border-bottom: 1px solid rgba(245,158,11,0.15);
         }
 
-        .block {
-            color: red;
-            font-weight: bold;
+        .result-banner.flag .label { color: var(--orange); }
+
+        .result-banner.block {
+            background: var(--red-bg);
+            border-bottom: 1px solid rgba(239,68,68,0.15);
         }
 
-        .result p {
-            margin: 5px 0;
+        .result-banner.block .label { color: var(--red); }
+
+        .result-rows {
+            padding: 6px 0;
+        }
+
+        .result-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 18px;
+            gap: 12px;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+
+        .result-row:last-child { border-bottom: none; }
+        .result-row:hover { background: rgba(255,255,255,0.02); }
+
+        .result-row .key {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            min-width: 110px;
+            flex-shrink: 0;
+        }
+
+        .result-row .val {
+            font-size: 13px;
+            color: var(--text);
+            font-weight: 500;
+            word-break: break-all;
+        }
+
+        .val.allow { color: var(--green); }
+        .val.flag { color: var(--orange); }
+        .val.block { color: var(--red); }
+
+        /* Risk score meter */
+        .risk-meter {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .risk-track {
+            flex: 1;
+            height: 4px;
+            background: var(--surface-2);
+            border-radius: 2px;
+            overflow: hidden;
+            max-width: 120px;
+        }
+
+        .risk-fill {
+            height: 100%;
+            border-radius: 2px;
+            transition: width 0.6s ease;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .badge.allow { background: var(--green-bg); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+        .badge.flag { background: var(--orange-bg); color: var(--orange); border: 1px solid rgba(245,158,11,0.2); }
+        .badge.block { background: var(--red-bg); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+        /* Error state */
+        .error-card {
+            background: var(--red-bg);
+            border: 1px solid rgba(239,68,68,0.2);
+            border-radius: 12px;
+            padding: 16px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: fadeSlideUp 0.3s ease both;
+        }
+
+        .error-card .icon { font-size: 18px; }
+
+        .error-card .msg {
+            font-size: 13px;
+            color: var(--red);
+            font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: fadeSlideUp 0.6s ease 0.2s both;
+        }
+
+        .footer-tag {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .footer-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .footer-dots span {
+            width: 4px;
+            height: 4px;
+            background: var(--text-muted);
+            border-radius: 50%;
+            opacity: 0.3;
+        }
+
+        /* Animations */
+        @keyframes fadeSlideDown {
+            from { opacity: 0; transform: translateY(-16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(350%); }
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 8px var(--green); }
+            50% { box-shadow: 0 0 16px var(--green), 0 0 4px var(--green); }
         }
     </style>
 </head>
 <body>
+    <div class="container">
 
-    <h2>Advanced Disposable Email Detector</h2>
+        <div class="header">
+            <div class="logo-row">
+                <div class="logo-icon">🛡</div>
+                <div class="brand">Email<span>Guard</span></div>
+            </div>
+            <div class="tagline">Disposable &amp; Risk Intelligence</div>
+        </div>
 
-    <input type="text" id="email" placeholder="Enter email">
-    <button onclick="checkEmail()">Check</button>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Risk Scanner</div>
+                <div class="status-dot"></div>
+            </div>
+            <div class="card-body">
+                <div class="input-group">
+                    <div class="input-wrapper">
+                        <span class="input-icon">✉</span>
+                        <input type="text" id="email" placeholder="user@example.com" onkeydown="if(event.key==='Enter')checkEmail()">
+                    </div>
+                    <button id="checkBtn" onclick="checkEmail()">Analyze</button>
+                </div>
+                <div class="hint">Press Enter or click Analyze to scan the address</div>
 
-    <div class="result" id="result"></div>
+                <div class="divider" id="divider" style="display:none;"></div>
+                <div class="result-area" id="result"></div>
+            </div>
+        </div>
 
-<script>
-async function checkEmail() {
-    const email = document.getElementById("email").value.trim();
-    const resultDiv = document.getElementById("result");
+        <div class="footer">
+            <div class="footer-tag">v2.0 · Live API</div>
+            <div class="footer-dots">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
 
-    if (!email) {
-        resultDiv.innerHTML = `<div class="invalid">❌ Please enter an email address.</div>`;
-        return;
-    }
+    </div>
 
-    try {
-        const response = await fetch("http://127.0.0.1:3001/check-email", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({ email: email })
-        });
+    <script>
+        async function checkEmail() {
+            const email = document.getElementById("email").value.trim();
+            const resultDiv = document.getElementById("result");
+            const divider = document.getElementById("divider");
+            const btn = document.getElementById("checkBtn");
 
-        if (!response.ok) throw new Error("HTTP error " + response.status);
+            if (!email) {
+                divider.style.display = 'block';
+                resultDiv.innerHTML = `
+                    <div class="error-card">
+                        <span class="icon">⚠️</span>
+                        <span class="msg">Please enter an email address to analyze.</span>
+                    </div>`;
+                return;
+            }
 
-        const data = await response.json();
-
-        let actionClass = data.action === "ALLOW" ? "allow" :
-                          data.action === "FLAG" ? "flag" : "block";
-
-        // ❌ Invalid email format
-        if (!data.valid_email) {
+            // Show scanning state
+            divider.style.display = 'block';
+            btn.textContent = 'Scanning…';
+            btn.classList.add('loading');
             resultDiv.innerHTML = `
-                <div class="invalid">❌ Invalid Email Format</div>
-                <p><b>Email:</b> ${data.email || "-"}</p>
-                <p><b>Risk Score:</b> ${data.risk_score ?? "-"}</p>
-                <p><b>Recommended Action:</b> <span class="${actionClass}">${data.action || "-"}</span></p>
-            `;
-            return;
+                <div class="scanning">
+                    <div class="scan-bar-wrapper"><div class="scan-bar"></div></div>
+                    <div class="scan-label">Analyzing threat profile…</div>
+                </div>`;
+
+            try {
+                const response = await fetch("http://127.0.0.1:3001/check-email", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email })
+                });
+
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                const data = await response.json();
+
+                const action = (data.action || 'UNKNOWN').toLowerCase();
+                const actionClass = action === 'allow' ? 'allow' : action === 'flag' ? 'flag' : 'block';
+
+                const bannerMap = {
+                    allow: { icon: '✅', label: 'Address Cleared — Low Risk' },
+                    flag:  { icon: '⚠️', label: 'Disposable Address Detected' },
+                    block: { icon: '🚫', label: 'High Risk — Blocked' }
+                };
+                const banner = bannerMap[actionClass] || { icon: '❓', label: 'Unknown Status' };
+
+                // Risk fill color
+                const score = data.risk_score ?? 0;
+                const fillColor = score <= 30 ? 'var(--green)' : score <= 60 ? 'var(--orange)' : 'var(--red)';
+
+                if (!data.valid_email) {
+                    resultDiv.innerHTML = `
+                        <div class="result-card">
+                            <div class="result-banner block">
+                                <span class="icon">❌</span>
+                                <span class="label">Invalid Email Format</span>
+                            </div>
+                            <div class="result-rows">
+                                ${data.email ? `<div class="result-row"><span class="key">Address</span><span class="val">${data.email}</span></div>` : ''}
+                                <div class="result-row">
+                                    <span class="key">Risk Score</span>
+                                    <div class="risk-meter">
+                                        <span class="val">${score}</span>
+                                        <div class="risk-track"><div class="risk-fill" style="width:${score}%;background:${fillColor}"></div></div>
+                                    </div>
+                                </div>
+                                <div class="result-row">
+                                    <span class="key">Decision</span>
+                                    <span class="badge block">🚫 ${data.action || 'BLOCK'}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="result-card">
+                            <div class="result-banner ${actionClass}">
+                                <span class="icon">${banner.icon}</span>
+                                <span class="label">${banner.label}</span>
+                            </div>
+                            <div class="result-rows">
+                                <div class="result-row"><span class="key">Address</span><span class="val">${data.email || '—'}</span></div>
+                                <div class="result-row"><span class="key">Domain</span><span class="val">${data.domain || '—'}</span></div>
+                                <div class="result-row"><span class="key">Valid Format</span><span class="val allow">Yes</span></div>
+                                <div class="result-row">
+                                    <span class="key">Risk Score</span>
+                                    <div class="risk-meter">
+                                        <span class="val">${score}</span>
+                                        <div class="risk-track"><div class="risk-fill" style="width:${score}%;background:${fillColor}"></div></div>
+                                    </div>
+                                </div>
+                                <div class="result-row">
+                                    <span class="key">Decision</span>
+                                    <span class="badge ${actionClass}">${data.action || '—'}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+
+            } catch (err) {
+                console.error(err);
+                resultDiv.innerHTML = `
+                    <div class="error-card">
+                        <span class="icon">🔌</span>
+                        <span class="msg">Cannot reach backend server. Is it running on port 3001?</span>
+                    </div>`;
+            } finally {
+                btn.textContent = 'Analyze';
+                btn.classList.remove('loading');
+            }
         }
-
-        // ⚠ Disposable email
-        if (data.local_disposable || data.api_disposable) {
-            resultDiv.innerHTML = `
-                <div class="flag">⚠ Disposable Email Detected</div>
-                <p><b>Email:</b> ${data.email}</p>
-                <p><b>Domain:</b> ${data.domain}</p>
-                <p><b>Risk Score:</b> ${data.risk_score}</p>
-                <p><b>Recommended Action:</b> <span class="${actionClass}">${data.action}</span></p>
-            `;
-            return;
-        }
-
-        // ✅ Normal email
-        resultDiv.innerHTML = `
-            <p><b>Email:</b> ${data.email}</p>
-            <p><b>Domain:</b> ${data.domain}</p>
-            <p><b>Valid Email:</b> Yes</p>
-            <p><b>Risk Score:</b> ${data.risk_score}</p>
-            <p><b>Recommended Action:</b> <span class="${actionClass}">${data.action}</span></p>
-        `;
-
-    } catch (error) {
-        console.error("Fetch Error:", error);
-        resultDiv.innerHTML = `<div class="invalid">❌ Cannot connect to backend.</div>`;
-    }
-}
-</script>
+    </script>
+</body>
+</html>
